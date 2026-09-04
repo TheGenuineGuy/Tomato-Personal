@@ -25,14 +25,14 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build debug APK with Gradle
-        run: ./gradlew assembleFossDebug
+      - name: Build release APK with Gradle
+        run: ./gradlew assembleFossRelease
 
       - name: Run tests
         run: ./gradlew testFossDebugUnitTest
 
-      - name: Upload debug APK artifact
+      - name: Upload release APK artifact
         uses: actions/upload-artifact@v7
         with:
           archive: false
-          path: ./androidApp/build/outputs/apk/foss/debug/androidApp-foss-debug.apk
+          path: ./androidApp/build/outputs/apk/foss/release/androidApp-foss-release.apk
