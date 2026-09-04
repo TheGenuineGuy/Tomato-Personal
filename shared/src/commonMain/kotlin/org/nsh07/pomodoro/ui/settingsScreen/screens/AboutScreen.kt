@@ -70,6 +70,7 @@ import org.nsh07.pomodoro.ui.theme.CustomColors.topBarColors
 import org.nsh07.pomodoro.ui.theme.LocalAppFonts
 import org.nsh07.pomodoro.ui.theme.TomatoShapeDefaults.PANE_MAX_WIDTH
 import org.nsh07.pomodoro.ui.theme.TomatoShapeDefaults.segmentedListItemShapes
+import org.nsh07.pomodoro.ui.theme.TomatoShapeDefaults.topListItemShape
 import org.nsh07.pomodoro.ui.theme.TomatoTheme
 import tomato.shared.generated.resources.Res
 import tomato.shared.generated.resources.about
@@ -153,7 +154,7 @@ fun AboutScreen(
                         .padding(horizontal = 16.dp)
                 ) {
                     item {
-                        Box(Modifier.background(listItemColors.containerColor, segmentedListItemShapes(0, 1))) {
+                        Box(Modifier.background(listItemColors.containerColor, topListItemShape)) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(16.dp)
