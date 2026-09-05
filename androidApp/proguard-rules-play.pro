@@ -30,3 +30,26 @@
 -keep class * implements androidx.glance.appwidget.action.ActionCallback {
     public <init>();
 }
+
+# Google API Client & Drive
+-keep class com.google.api.client.** { *; }
+-keep interface com.google.api.client.** { *; }
+-keep class com.google.api.services.drive.** { *; }
+-keep interface com.google.api.services.drive.** { *; }
+-keepclassmembers class * {
+    @com.google.api.client.util.Key <fields>;
+}
+
+# Gson
+-keepattributes Signature,RuntimeVisibleAnnotations,AnnotationDefault
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-keep class com.google.gson.** { *; }
+
+# Suppress warnings
+-dontwarn com.google.api.client.**
+-dontwarn com.google.common.**
+-dontwarn org.apache.http.**
+-dontwarn org.checkerframework.**
+-dontwarn javax.annotation.**

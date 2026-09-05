@@ -13,7 +13,7 @@ class DriveBackupWorker(context: Context, params: WorkerParameters) : CoroutineW
         return try {
             manager.performBackupNow()
             Result.success()
-        } catch (e: Exception) {
+        } catch (t: Throwable) {
             if (runAttemptCount < 3) Result.retry() else Result.failure()
         }
     }

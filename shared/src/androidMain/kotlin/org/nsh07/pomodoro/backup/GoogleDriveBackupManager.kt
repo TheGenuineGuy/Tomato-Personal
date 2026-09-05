@@ -117,7 +117,7 @@ class GoogleDriveBackupManager(private val context: Context) : KoinComponent {
         try {
             val account = GoogleSignIn.getLastSignedInAccount(context) ?: return@withContext false
             val credential = GoogleAccountCredential.usingOAuth2(context, listOf(DriveScopes.DRIVE_APPDATA))
-                .apply { selectedAccount = account.account }
+                .apply { selectedAccountName = account.email }
                 
             val driveService = Drive.Builder(NetHttpTransport(), GsonFactory(), credential)
                 .setApplicationName("Potato")
@@ -156,8 +156,8 @@ class GoogleDriveBackupManager(private val context: Context) : KoinComponent {
             _lastBackupTimestamp.value = timestamp
             
             true
-        } catch (e: Exception) {
-            Log.e("DriveBackup", "Backup failed", e)
+        } catch (t: Throwable) {
+            Log.e("DriveBackup", "Backup failed", t)
             false
         } finally {
             _isBackingUp.value = false
