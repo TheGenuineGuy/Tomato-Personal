@@ -88,10 +88,10 @@ kotlin {
             implementation(libs.koin.android)
 
             implementation(libs.play.services.auth)
-            implementation(libs.google.api.client.android) {
+            implementation("com.google.api-client:google-api-client-android:2.7.0") {
                 exclude(group = "org.apache.httpcomponents")
             }
-            implementation(libs.google.api.services.drive) {
+            implementation("com.google.apis:google-api-services-drive:v3-rev20240914-2.0.0") {
                 exclude(group = "org.apache.httpcomponents")
             }
             implementation(libs.google.http.client.gson)
