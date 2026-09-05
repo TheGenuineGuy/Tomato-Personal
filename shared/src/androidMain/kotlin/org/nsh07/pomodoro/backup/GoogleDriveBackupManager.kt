@@ -29,12 +29,22 @@ import androidx.sqlite.db.SimpleSQLiteQuery
 import org.nsh07.pomodoro.data.SystemDao
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.io.File
+import java.io.FileOutputStream
+
+data class DriveBackupItem(
+    val id: String,
+    val name: String,
+    val timestampMs: Long,
+    val sizeBytes: Long
+)
 
 class GoogleDriveBackupManager(private val context: Context) : KoinComponent {
 
     private val prefs: SharedPreferences = context.getSharedPreferences("drive_backup_prefs", Context.MODE_PRIVATE)
     
     private val systemDao: SystemDao by inject()
+    private val database: AppDatabase by inject()
 
     private val _isSignedIn = MutableStateFlow(false)
     val isSignedIn: StateFlow<Boolean> = _isSignedIn.asStateFlow()
@@ -47,6 +57,9 @@ class GoogleDriveBackupManager(private val context: Context) : KoinComponent {
 
     private val _isBackingUp = MutableStateFlow(false)
     val isBackingUp: StateFlow<Boolean> = _isBackingUp.asStateFlow()
+
+    private val _isRestoring = MutableStateFlow(false)
+    val isRestoring: StateFlow<Boolean> = _isRestoring.asStateFlow()
 
     init {
         val account = GoogleSignIn.getLastSignedInAccount(context)
@@ -111,22 +124,104 @@ class GoogleDriveBackupManager(private val context: Context) : KoinComponent {
     private fun cancelPeriodicBackup() {
         WorkManager.getInstance(context).cancelUniqueWork("drive_backup_work")
     }
+    
+    private fun getDriveService(): Drive? {
+        val account = GoogleSignIn.getLastSignedInAccount(context) ?: return null
+        val credential = GoogleAccountCredential.usingOAuth2(context, listOf(DriveScopes.DRIVE_APPDATA))
+            .apply { selectedAccountName = account.email }
+            
+        return Drive.Builder(NetHttpTransport(), GsonFactory(), credential)
+            .setApplicationName("Potato")
+            .build()
+    }
+
+    suspend fun fetchAvailableBackups(): List<DriveBackupItem> = withContext(Dispatchers.IO) {
+        try {
+            val driveService = getDriveService() ?: return@withContext emptyList()
+            
+            val result = driveService.files().list()
+                .setSpaces("appDataFolder")
+                .setFields("files(id, name, createdTime, size)")
+                .setOrderBy("createdTime desc")
+                .execute()
+                
+            val files = result.files ?: emptyList()
+            files.mapNotNull { file ->
+                val id = file.id ?: return@mapNotNull null
+                val name = file.name ?: return@mapNotNull null
+                val time = file.createdTime?.value ?: 0L
+                val size = file.getSize() ?: 0L
+                DriveBackupItem(id, name, time, size)
+            }
+        } catch (t: Throwable) {
+            Log.e("DriveBackup", "Fetch backups failed", t)
+            emptyList()
+        }
+    }
+
+    suspend fun performRestoreFromDrive(fileId: String): Boolean = withContext(Dispatchers.IO) {
+        _isRestoring.value = true
+        try {
+            val driveService = getDriveService() ?: return@withContext false
+            
+            // Close database first
+            database.close()
+            
+            val dbName = "app_database"
+            val dbFile = context.getDatabasePath(dbName)
+            if (!dbFile.parentFile!!.exists()) dbFile.parentFile!!.mkdirs()
+            
+            File("${dbFile.path}-wal").delete()
+            File("${dbFile.path}-shm").delete()
+            
+            val outputStream = FileOutputStream(dbFile)
+            driveService.files().get(fileId).executeMediaAndDownloadTo(outputStream)
+            outputStream.close()
+            
+            // Restart the app cleanly
+            restartApp()
+            true
+        } catch (t: Throwable) {
+            Log.e("DriveBackup", "Restore failed", t)
+            false
+        } finally {
+            _isRestoring.value = false
+        }
+    }
+    
+    private fun restartApp() {
+        val packageManager = context.packageManager
+        val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+        val componentName = intent?.component
+
+        val mainIntent = Intent.makeRestartActivityTask(componentName)
+        mainIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        context.startActivity(mainIntent)
+        Runtime.getRuntime().exit(0)
+    }
 
     suspend fun performBackupNow(): Boolean = withContext(Dispatchers.IO) {
         _isBackingUp.value = true
         try {
-            val account = GoogleSignIn.getLastSignedInAccount(context) ?: return@withContext false
-            val credential = GoogleAccountCredential.usingOAuth2(context, listOf(DriveScopes.DRIVE_APPDATA))
-                .apply { selectedAccountName = account.email }
-                
-            val driveService = Drive.Builder(NetHttpTransport(), GsonFactory(), credential)
-                .setApplicationName("Potato")
-                .build()
+            val driveService = getDriveService() ?: return@withContext false
 
+            // Check if local database is completely empty to prevent overwriting cloud backups
+            val lastStatDate = database.statDao().getLastDate()
+            val dbFile = context.getDatabasePath("app_database")
+            
             // Checkpoint WAL
             systemDao.checkpoint(SimpleSQLiteQuery("pragma wal_checkpoint(full)"))
-            val dbFile = context.getDatabasePath("app_database")
             if (!dbFile.exists()) return@withContext false
+            
+            if (lastStatDate == null || dbFile.length() < 25000L) { // ~25KB is typically an empty sqlite db
+                // Check if cloud has backups
+                val backups = fetchAvailableBackups()
+                if (backups.isNotEmpty()) {
+                    Log.w("DriveBackup", "Local DB is empty but cloud has backups. Aborting backup to prevent overwrite.")
+                    return@withContext false
+                }
+            }
             
             // Create backup file in Drive
             val timestamp = System.currentTimeMillis()
