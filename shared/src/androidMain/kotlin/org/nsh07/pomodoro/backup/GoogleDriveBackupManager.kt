@@ -12,7 +12,7 @@ import androidx.work.WorkManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.Scope
-import com.google.api.client.extensions.android.http.AndroidHttp
+import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.http.FileContent
 import com.google.api.client.json.gson.GsonFactory
@@ -119,7 +119,7 @@ class GoogleDriveBackupManager(private val context: Context) : KoinComponent {
             val credential = GoogleAccountCredential.usingOAuth2(context, listOf(DriveScopes.DRIVE_APPDATA))
                 .apply { selectedAccount = account.account }
                 
-            val driveService = Drive.Builder(AndroidHttp.newCompatibleTransport(), GsonFactory(), credential)
+            val driveService = Drive.Builder(NetHttpTransport(), GsonFactory(), credential)
                 .setApplicationName("Potato")
                 .build()
 

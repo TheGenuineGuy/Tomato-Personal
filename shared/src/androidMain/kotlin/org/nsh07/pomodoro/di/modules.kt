@@ -48,7 +48,7 @@ val viewModels = module {
 
 val androidModule = module {
     single<AndroidBackupRestoreManager>() bind BackupRestoreManager::class
-    single { org.nsh07.pomodoro.backup.GoogleDriveBackupManager(org.koin.android.ext.koin.androidContext()) }
+    single { org.nsh07.pomodoro.backup.GoogleDriveBackupManager(get()) }
 }
 
 private fun createDatabase(context: Context): AppDatabase {
