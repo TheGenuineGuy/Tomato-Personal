@@ -22,8 +22,8 @@
     <string name="alarm_sound">Alarm sound</string>
     <string name="always_on_display">Always On Display</string>
     <string name="always_on_display_desc">Tap anywhere when viewing the timer to switch to AOD mode</string>
-    <string name="app_name">Tomato</string>
-    <string name="app_name_plus">Tomato+</string>
+    <string name="app_name">Potato</string>
+    <string name="app_name_plus">Potato+</string>
     <string name="appearance">Appearance</string>
     <string name="auto_start_next_timer">Auto start next timer</string>
     <string name="auto_start_next_timer_desc">Start next timer after stopping an alarm</string>
