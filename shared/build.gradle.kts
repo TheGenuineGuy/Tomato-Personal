@@ -86,6 +86,16 @@ kotlin {
             implementation(libs.androidx.core.ktx)
 
             implementation(libs.koin.android)
+
+            implementation(libs.play.services.auth)
+            implementation(libs.google.api.client.android) {
+                exclude(group = "org.apache.httpcomponents")
+            }
+            implementation(libs.google.api.services.drive) {
+                exclude(group = "org.apache.httpcomponents")
+            }
+            implementation(libs.google.http.client.gson)
+            implementation(libs.work.runtime.ktx)
         }
 
         androidInstrumentedTest.dependencies {

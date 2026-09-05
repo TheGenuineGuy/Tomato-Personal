@@ -177,6 +177,8 @@ fun BackupRestoreScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 item {
+                    DriveBackupSection()
+                    Spacer(Modifier.height(12.dp))
                     Spacer(Modifier.height(14.dp))
                 }
 
